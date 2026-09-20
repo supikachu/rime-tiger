@@ -42,9 +42,10 @@
 | `tigress.schema.yaml` | 2,328 / b1f56e7d7e02 | 3,302 / 188e0ed365dc | 补丁 3、5 |
 
 六个词表／符号文件与上游完全一致，合计 7,196,960 字节；本仓库自己改动的只有那 4 个配置文件，
-合计 13,357 字节。复现命令（把上游 `rime/` 拉到 `huma_up/` 再逐个比 sha1）：
+合计 13,357 字节。复现命令（把上游 `rime/` 拉到 `huma_up/` 再逐个比 sha1；
+全文几条命令都在 Git Bash 里跑，假定本仓库放在 `~/Desktop/rime-tiger`，换位置就改 `cd`）：
 ```bash
-cd "C:/Users/pikachu/Desktop" && SHA=421380f156172356c63ea3855f588c55dfe268ed \
+cd ~/Desktop && SHA=421380f156172356c63ea3855f588c55dfe268ed \
   && mkdir -p huma_up && for f in rime-tiger/*.yaml; do
        n=$(basename "$f")
        curl -s --max-time 40 "https://raw.githubusercontent.com/humaIME/huma/$SHA/rime/$n" -o "huma_up/$n"
@@ -120,7 +121,7 @@ librime `src/rime/lever/deployment_tasks.cc` 的 `WorkspaceUpdate::Run`（master
 合计 7,210,317 字节（6.88 MiB），10 个文件。核对方式（Git Bash，从输出里逐行比对字节数与 sha1）：
 
 ```bash
-cd "C:/Users/pikachu/Desktop/rime-tiger" && python -c "
+cd ~/Desktop/rime-tiger && python -c "
 import glob,os,hashlib
 t=0
 for f in sorted(glob.glob('*.yaml')):
@@ -262,24 +263,25 @@ print(f'{t:>9}  TOTAL')"
 （元书 1.3.0 起把 zip 一律按方案包解压到用户方案目录下），
 再「方案目录切换」选 `rime-tiger`。
 > 导入后先看一眼有没有变成 `rime-tiger/rime-tiger/` 双层；真出现双层就把方案文件上移一层。
-> zip 顶层已含 `rime-tiger/` 一层，且不含 `README.md`。重新打包（Git Bash 验证过；
-> 注意 `zip` 对已存在的归档是**追加**而不是覆盖，所以必须先删）：
+> zip 顶层已含 `rime-tiger/` 一层，且只装 yaml。重新打包（Git Bash 验证过；`zip` 对已存在的
+> 归档是**追加**而不是覆盖，所以必须先删；只列 `*.yaml` 是为了不把 `.git/`、README 一起打进去）：
 >
 > ```bash
-> cd "C:/Users/pikachu/Desktop" && rm -f rime-tiger.zip \
->   && zip -r rime-tiger.zip rime-tiger -x "rime-tiger/README.md" \
->   && unzip -l rime-tiger.zip
+> cd ~/Desktop && rm -f rime-tiger.zip && zip rime-tiger.zip rime-tiger/*.yaml && unzip -l rime-tiger.zip
 > ```
 >
-> 打完逐字节复核（`unzip -l` 只看名字和长度，这条才是真比对；两条都在 Git Bash 验证过）：
+> 打完从归档里回验（`unzip -l` 只看名字和长度，这条才是逐字节比对；也在 Git Bash 验证过）：
 >
 > ```bash
-> cd "C:/Users/pikachu/Desktop" && rm -rf /tmp/zipchk \
->   && unzip -q -o rime-tiger.zip -d /tmp/zipchk \
->   && diff -r /tmp/zipchk/rime-tiger rime-tiger -x README.md && echo "SAME (except README)"
+> cd ~/Desktop && rm -rf /tmp/zipchk && unzip -q -o rime-tiger.zip -d /tmp/zipchk \
+>   && ls /tmp/zipchk/rime-tiger | wc -l \
+>   && for f in /tmp/zipchk/rime-tiger/*.yaml; do
+>        n=$(basename "$f"); cmp "$f" "rime-tiger/$n" && echo "OK   $n" || echo "BAD  $n"
+>      done
 > ```
 >
-> 当前归档内容：`rime-tiger/` 一层 + 10 个 yaml、共 7,210,317 字节，无 `stroke.*`、无 `README.md`。
+> 上面第一条应输出 `10`，第二条应输出 10 行 `OK`，且没有 `stroke.*`、没有 `README.md`。
+> 当前归档内容：`rime-tiger/` 一层 + 10 个 yaml、共 7,210,317 字节。
 
 ## 部署后请核对
 
