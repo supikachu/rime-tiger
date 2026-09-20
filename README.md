@@ -141,7 +141,7 @@ print(f'{t:>9}  TOTAL')"
    `found character '\t' that cannot start any token`。已去掉 TAB 与行尾空格，语义不变。
 
 4. **`default.yaml`**：`config_version: "0.36"` → `"99.99"`。元书
-   `RimeSharedSupport/default.yaml` 的内置版本实测为 **0.50**（2026-09-20，元书 v3），
+   `RimeSharedSupport/default.yaml` 的内置版本实测为 **0.50**（2026-09-20），
    高于本文件的 0.36，librime 于是把本文件当作过期副本移进 `trash/`（详见「部署」一节的
    机制说明），`schema_list` 随即退回内置值——这就是真机上「目录一切换就只剩 build/trash
    两个文件夹、方案列表里没有虎码」的原因。抬到 99.99 后对任何 0.x / 1.x / 2.x 内置值
@@ -284,62 +284,35 @@ print(f'{t:>9}  TOTAL')"
 > 上面第一条应输出 `10`，第二条应输出 10 行 `OK`，且没有 `stroke.*`、没有 `README.md`。
 > 当前归档内容：`rime-tiger/` 一层 + 10 个 yaml、共 7,210,317 字节。
 
-## 部署日志怎么看（元书 v3）
+## 部署日志怎么看（元书）
 
-入口在 **「RIME」页 → 「RIME 日志」**，排在「部署时覆盖键盘词库文件」下面、「重新部署」上面
-（`Packages/HamsteriOS/Sources/ViewModel/RIME/RimeViewModel.swift:96`）。点进去是个**只读**文件
-浏览器（`RimeLoggerViewController.swift:17`，`enableEditorState: false`），列的是 App 沙盒
-`Documents/RIMELogger/`（`HamsterKit/Sources/Extensions/FileManager+.swift:260, 359`），
-文件名 `yyyyMMdd-HHmmss.log`（`DateFormatter+.swift:28-33`），**最多留 10 个**，超了删最旧的
-（`RimeViewModel.swift:182`）。
-> 早前这里写的「`文件管理` → 查看日志」是**我写错的**：那行（`SettingsViewModel.swift:125`）进的是
-> 「方案文件管理」（`FinderViewController.swift:67`），里面没有日志。已按源码改正。
+**入口：「RIME」页 → 「查看日志」**（真机上的行名）。它是把最新一份 rime 日志直接显示出来，
+不是在 App 里翻日志文件；元书文档也没有日志相关页面（`Hamster3Document` 全文搜「日志」只命中：
+网络存储页底部的传输日志、皮肤长按菜单的「打开日志」、以及「更新日志」本身）。
 
-三条从源码读出来的限制，看日志前必须知道：
+> 这一节先前整段是按 `imfuxiao/Hamster` 的源码写的（行名「RIME 日志」、`Documents/RIMELogger/`、
+> 文件名 `yyyyMMdd-HHmmss.log`、最多留 10 个、`dup2` 接 stderr……）。**那个仓库是「仓输入法」，
+> 不是元书**：官方 FAQ 明写「元书是仓的全新改版版本，舍弃了仓的代码基础，重新设计和实现了应用架构」，
+> 而元书**没有公开源码**（作者仓库里与它相关的只有文档仓 `imfuxiao/Hamster3Document`；元书的 iCloud
+> 容器叫 `iCloud~com~imfuxiao~Hamster3`，自身版本号是 1.x，更新日志最新一条 1.10.2 / 2026-09-19——
+> 文档网址里的 `v3` 指 Hamster 第三代，不是应用版本 3.x）。上面那串源码结论一条都不能算元书的，
+> 已删除；行名改用真机上的叫法。
 
-1. **只有「重新部署」和「RIME 同步」这两次操作会往这个文件里写**（`rimeDeploy` :230-246、
-   `rimeSync` :248-280 是唯一调 `rimeLogger()` 的两处）。机制：`readStderrPipe` 第一次被用到时
-   就把 stderr **永久**接到管道（`dup2(pipe…, STDERR_FILENO)`，:30-34，另设 `setvbuf(stderr, …, _IONBF, 0)`
-   取消缓冲；`closeRimeLogger` :202-209 只换回调、不还原 fd），接住的是 glog 吐到 stderr 的行。
-   这里有个我没法从源码确认的前提：librime 是否往 stderr 吐，取决于编译期开关——`SetupLogging` 里
-   `FLAGS_alsologtostderr = true` 那句被 `#ifdef RIME_ALSO_LOG_TO_STDERR` 包着
-   （`src/rime/setup.cc:87-90`），而 librime master 的 `option(ALSO_LOG_TO_STDERR …)` **默认 OFF**。
-   元书的 librime 是预编译的（`librimeFramework.sh` 从 `imfuxiao/LibrimeKit` 2.4.2 下 `Frameworks.tgz`，
-   那个仓库 API 返回 Not Found，我看不到构建参数）。**自查办法很直接**：「RIME 日志」里最新那个文件
-   有内容 = 开关是 ON；0 字节 = 这份构建不往 stderr 吐，那 `checkRimeLogger` 也就是空转，
-   部署结果只能靠现象判断（方案列表、`build/` 里的 `*.bin`、能不能打字）。
-2. **打字时的运行期日志进不了这个文件**。全仓库只有 `RimeViewModel.swift` 出现过 `dup2` / `Pipe()`
-   （`grep -rn "dup2\|Pipe()" --include=*.swift .` 只命中这一个文件），键盘扩展
-   （`HamsterKeyboard/`、`Packages/HamsterKeyboardKit/`）里没有任何重定向，所以运行期
-   `LOG(ERROR)`——包括 `charset parameter is unsupported by basic charset_filter`——
-   在「RIME 日志」里搜不到。**别拿它当验收条件**，改用下面那条 sha1 核对。
-   glog 自己那套文件也指望不上：元书建 traits 时不设 `logDir`（`RimeKit/Sources/Swift/Rime.swift:48-65`
-   只填目录、发行版和 `appName = "rime.Hamster"`），更彻底的是 ObjC 那层的映射
-   `irime_api.m:76-103` **压根没有 `log_dir` / `min_log_level` 两行**（全文件只有 :71 的
-   `@synthesize logDir`），所以 librime 拿到的 `log_dir` 恒为 NULL → 既不会 `LogToStderr()`、
-   也不会设 `FLAGS_log_dir`，librime 的 `CleanOldLogFiles` 于是在
-   `src/rime/lever/deployment_tasks.cc:627` 因 `FLAGS_log_dir.empty()` 直接返回。
-   glog 默认仍可能按 TMPDIR（iOS 上 = App 的 `tmp/`）另写文件，但那个目录 Wi-Fi 页看不到
-   （它的根是 Documents），**这条我没实测**；而且键盘扩展是另一个沙盒，它的 glog 文件 App 读不到。
-   > 未实测：键盘进程的 stderr 理论上会进 iOS 系统日志，配对 Mac 的「控制台」或 Xcode
-   > 也许能看到运行期那行。我没有设备可验，只是给个方向，别当结论用。
-3. **「部署成功」不等于日志干净**。元书收尾只用正则 `.*[1-9] failure.*` 扫这一份文件
-   （`checkRimeLogger`，:211-227），命中才弹「RIME日志存在异常」。那一行来自 librime
-   `WorkspaceUpdate` 的 `… << failure << " failure."`（`src/rime/lever/deployment_tasks.cc:248`）。
-   WARNING 级问题（补丁 6 之前的 `skipped unsatisfied dependency`）**不会**触发提示，得自己搜。
+所以下面只留两类立得住的：librime 本身的字符串，和真机能看到的判据。
 
-要搜的关键字：`missing input schema`、`skipped unsatisfied dependency`、`deprecated user copy`、
+**日志里要搜的关键字**（这些字符串来自 librime 本身，两款 App 跑的是同一个引擎，这部分可靠）：
+`missing input schema`、`skipped unsatisfied dependency`、`deprecated user copy`、
 `cannot start any token`、`failure`。
 
-日志文件较大的话可以拉到电脑上 `grep`：上面「部署」一节用的那个局域网上传页（源码里设置项
-叫「Wi-Fi上传方案」，`SettingsViewModel.swift:117`）起的 HTTP 服务，根目录传的正是
-`FileManager.sandboxDirectory`（= App 沙盒 Documents，`UploadInputSchemaViewModel.swift:17-21`），
-而 `RIMELogger/` 和你放方案的 `RimeUserData/` 都在这一层 Documents 下面——所以从这个页面向上
-一层就能看到 `RIMELogger/`，把最新的 `.log` 下到电脑再搜。网页里点目录、下载的具体交互我没实测，
-找不到就回退用 App 内「RIME 日志」页逐行看。
+**「部署成功」不代表日志干净**：librime 的 `WorkspaceUpdate::Run` 收尾会打
+`… << failure << " failure."`（`src/rime/lever/deployment_tasks.cc:248`，:254 以 `failure == 0`
+决定成败），而 `missing input schema; skipped unsatisfied dependency` 是 **WARNING、不计数**
+（缺 `schema_list` 里的方案才 `++failure`，:213 / :221）。所以补丁 6 那条只能自己搜，
+光看提示不够；元书自己用什么判据弹提示，闭源，我不知道。
 
-**怎么确认补丁 5、6 真的在手机上生效**（代替原来那条查运行期日志的测试）：用同一页把手机上的
-三个文件下到电脑算 sha1，对上就是新版：
+**打字时产生的运行期日志不要当验收条件**：`charset parameter is unsupported by basic charset_filter`
+是 gears 在候选阶段打的，而元书没有查看运行期日志的入口（它文档里连日志页都没有），所以搜不到它
+既不能证明、也不能证伪补丁 5。补丁 5、6 是否真的在手机上生效，用 sha1 核对：
 
 | 文件 | 应为 sha1(12) |
 |---|---|
@@ -349,7 +322,7 @@ print(f'{t:>9}  TOTAL')"
 
 ## 部署后请核对
 
-- [x] 部署日志无 ERROR（「RIME」→「RIME 日志」，见上一节；这条是 2026-09-20 那次 12 文件旧版部署的记录）
+- [x] 部署日志无 ERROR（「RIME」→「查看日志」；这条是 2026-09-20 那次 12 文件旧版部署的记录）
 - [x] 方案列表出现「虎码官方单字」「虎码官方小词库」
 - [x] 打 `u` 应出「的」，`je` 应出「他」（四码内自动上屏由 `speller/auto_select` 决定）
 - [x] 反查：中文 26 键盘 A 键上划出 `` ` `` → 打拼音 → L 键上划出 `'` → 候选注释显示虎码码
@@ -357,11 +330,11 @@ print(f'{t:>9}  TOTAL')"
 - [x] 补丁 6 复测·反查：删掉 `stroke.*` 并重传 `pinyin_simp.schema.yaml` 之后，
       `` ` ``+`xiang`、`` ` ``+`zhuang` 照常出候选、注释仍是虎码码（2026-09-20 真机通过）
 - [x] 补丁 3、5 复测·输入：`u`→的、`je`→他 没退化（同批通过）
-- [ ] 补丁 6 复测·日志：「RIME 日志」里既无 ERROR、也**不再出现**
-      `skipped unsatisfied dependency`（这条只能自己搜，见上一节限制 3）
+- [ ] 补丁 6 复测·日志：「查看日志」里既无 ERROR、也**不再出现**
+      `skipped unsatisfied dependency`（这条只能自己搜，理由见「部署日志怎么看」）
 - [ ] 补丁 5、6 上机核对：手机上那三个 schema 的 sha1 等于「部署日志怎么看」一节末尾表里的值
 
-> 实测记录：2026-09-20 元书 v3 真机部署成功（12 文件旧版）。日志无 ERROR，方案列表两项齐全，
+> 实测记录：2026-09-20 元书真机部署成功（12 文件旧版）。日志无 ERROR，方案列表两项齐全，
 > `u`→的、`je`→他 正确；`` ` ``+`xiang` 反查出「想 eqh eqhx／向 tm tmdk／像 jwx／象 wx／相 e…」，
 > 编码注释与〔拼音〕提示都正常，6 字母的 `zhuang`、`chuang` 同样正常。
 > 补丁 4 之前是 `default.yaml` 被移入 `trash/`、方案列表为空。
@@ -384,7 +357,7 @@ print(f'{t:>9}  TOTAL')"
 | `missing input schema: tiger`（ERROR） | `tiger.schema.yaml` 不在**当前方案目录**根下，或方案目录没切过来 | 见「部署」第一节的目录机制 |
 | `missing input schema; skipped unsatisfied dependency`（WARNING） | 缺被依赖的方案，部署成功但那一层为空。本包只依赖 `pinyin_simp`（补丁 6 之后不再依赖 stroke） | 补齐 `pinyin_simp.schema.yaml` + `pinyin_simp.dict.yaml`；若仍写着 `stroke`，说明手机上还是旧版 `pinyin_simp.schema.yaml` |
 | `found character '\t' that cannot start any token` | YAML **缩进**里出现 TAB（注意：`.dict.yaml` 正文里的 TAB 是格式要求，不算错） | 定位报错的 schema / default 文件改回空格 |
-| `charset parameter is unsupported by basic charset_filter`（**运行期** ERROR） | `charset_filter@gbk/@utf8/@gb2312` 三行还在生效，即手机上仍是旧版 schema | 按「升级」一节重传 `tiger.schema.yaml` / `tigress.schema.yaml`；补丁 5 已把这三行注释掉。**注意**：这条是打字时产生的，元书键盘扩展不重定向 stderr，所以它**不会出现在 `RIMELogger/` 里**，不能拿日志搜它来验收——改用「部署日志怎么看」一节末尾的 sha1 核对 |
+| `charset parameter is unsupported by basic charset_filter`（**运行期** ERROR） | `charset_filter@gbk/@utf8/@gb2312` 三行还在生效，即手机上仍是旧版 schema | 按「升级」一节重传 `tiger.schema.yaml` / `tigress.schema.yaml`；补丁 5 已把这三行注释掉。**注意**：这条是打字时产生的运行期日志，元书没有看运行期日志的入口，搜不到它既不能证明也不能证伪——改用「部署日志怎么看」一节末尾的 sha1 核对 |
 
 ## 实测结论与已知限制
 
@@ -427,5 +400,5 @@ print(f'{t:>9}  TOTAL')"
 - 恢复成 PC 完全一致的 stroke 行为：再把 `stroke.dict.yaml` 的 `use_preset_vocabulary`
   改回 `true`，并额外放一份 `essay.txt` 进本目录（元书不带八股文）。
 - 恢复上游的死配置：取消补丁 5 注释掉的 `options: [gbk, gb2312, utf8]` 与三行
-  `charset_filter@...`（行为不变，只会多运行期 ERROR；那几行在元书上看不见，
-  见「部署日志怎么看」限制 2）。
+  `charset_filter@...`（行为不变，只是每次上屏多打一条运行期 ERROR；元书上看不到那行，
+  见「部署日志怎么看」）。
