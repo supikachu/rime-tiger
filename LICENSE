@@ -1,0 +1,45 @@
+MIT License
+
+Copyright (c) 2026 supikachu
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Scope note (part of this license grant, read together with the README section
+"上游与许可" / "Upstream and licensing"):
+
+The "Software" above means ONLY the material authored in this repository, namely
+
+  - the modifications made by this repository to these four configuration files:
+    default.yaml, pinyin_simp.schema.yaml, tiger.schema.yaml, tigress.schema.yaml
+  - README.md and this LICENSE file
+
+It does NOT include the 虎码 (tiger) word lists and other files that are
+byte-for-byte identical to the upstream project
+https://github.com/humaIME/huma (reference commit
+421380f156172356c63ea3855f588c55dfe268ed), i.e.
+
+  tiger.dict.yaml, tigress.dict.yaml, tigress_ci.dict.yaml,
+  tigress_simp_ci.dict.yaml, pinyin_simp.dict.yaml, symbols.yaml
+
+Those files remain the property of their author(s). This repository claims no
+rights over them and therefore grants no rights over them. Upstream publishes
+no license file, so its default status is "all rights reserved"; obtain
+permission from the upstream author(s) before redistributing them elsewhere.

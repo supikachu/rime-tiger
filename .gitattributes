@@ -1,0 +1,5 @@
+# 关闭 git 的一切换行转换。上游 humaIME/huma 的文件本身就是 CRLF（symbols.yaml、
+# tiger.*、tigress.* 都是；pinyin_simp.* 是 LF），本仓库按「与上游逐字节相同」发布，
+# README 那张 sha1 表记的就是磁盘字节。默认的 text 自动转换会在 checkin 时把 \r 吃掉，
+# 提交进去的词表就不再等于上游，clone 出来的 sha1 也和文档对不上了。
+* -text

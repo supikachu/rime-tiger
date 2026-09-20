@@ -1,0 +1,17 @@
+# 元书 / librime 部署产物：每次「重新部署」都会重写，不该进版本库
+build/
+trash/
+sync/
+installation.yaml
+user.yaml
+*.bin
+*.log
+
+# 打包产物是词表的又一份副本，尤其不要提交
+*.zip
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
